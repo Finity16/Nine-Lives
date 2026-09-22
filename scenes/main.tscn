@@ -31,9 +31,39 @@ autostart = true
 
 [node name="GameOverLabel" type="Label" parent="UI" unique_id=32632294]
 visible = false
-offset_left = 335.0
-offset_top = 295.0
-offset_right = 799.0
-offset_bottom = 340.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -232.0
+offset_top = -22.5
+offset_right = 232.0
+offset_bottom = 22.5
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_font_sizes/font_size = 32
 text = "Game Over: Press R to Restart"
+horizontal_alignment = 1
+
+[node name="ScoreLabel" type="Label" parent="UI" unique_id=1778693952]
+offset_left = 19.0
+offset_top = 12.0
+offset_right = 140.0
+offset_bottom = 57.0
+theme_override_font_sizes/font_size = 32
+text = "Score: 0"
+
+[node name="DashBar" type="ProgressBar" parent="UI" unique_id=587300646]
+offset_left = 954.0
+offset_top = 16.0
+offset_right = 1135.0
+offset_bottom = 74.0
+
+[node name="DashLabel" type="Label" parent="UI" unique_id=1211791839]
+offset_left = 19.0
+offset_top = 57.0
+offset_right = 133.0
+offset_bottom = 102.0
+theme_override_font_sizes/font_size = 32
+text = "Dash: 0"
