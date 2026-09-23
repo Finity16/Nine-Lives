@@ -4,10 +4,13 @@ using System.Collections.Generic;
 public partial class Main : Node2D
 {
 	[Export] public PackedScene ProjectileScene;
+	[Export] public PackedScene CoinScene;
 
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
-	private bool _gameOver = false;
 	private Player _player;
+
+	private enum GameState { Menu, Playing, GameOver, Upgrades }
+	private GameState _state = GameState.Menu;
 
 	private double _survivalTime = 0.0;
 	private int _score = 0;
@@ -16,33 +19,86 @@ public partial class Main : Node2D
 	private const float MinSpawnWait = 0.45f;
 	private const float SpawnRampRate = 0.0275f;
 
-	private const float BaseProjectileSpeed = 200f;
-	private const float MaxProjectileSpeed = 500f;
+	private const float BaseProjectileSpeed = 250f;
+	private const float MaxProjectileSpeed = 420f;
 	private const float SpeedRampRate = 8.5f;
 
 	private const float BigSlowIntroTime = 10f;
 	private const float SplitterIntroTime = 20f;
 	private const float GoliathIntroTime = 30f;
 
-	private const float DashChargeInterval = 15f;
 	private double _lastDashChargeTime = 0.0;
+	private float DashChargeInterval => Mathf.Max(10f, 15f - GameData.DashLevel);
+
+	private List<Coin> _activeCoins = new List<Coin>();
+
+	private static readonly int[] SpeedCosts = { 10, 20, 35, 55, 80 };
+	private static readonly int[] DodgeCosts = { 15, 30, 50, 75, 110 };
+	private static readonly int[] DashCosts = { 20, 40, 65, 95, 140 };
 
 	public override void _Ready()
 	{
 		var spawnTimer = GetNode<Timer>("SpawnTimer");
 		spawnTimer.Timeout += OnSpawnTimerTimeout;
+		spawnTimer.Stop();
+
+		var coinTimer = GetNode<Timer>("CoinSpawnTimer");
+		coinTimer.WaitTime = 2.0f;
+		coinTimer.Timeout += OnCoinTimerTimeout;
+		coinTimer.Stop();
 
 		_player = GetNode<Player>("Player");
 		_player.PlayerDied += OnPlayerDied;
 		_player.DashChargesChanged += OnDashChargesChanged;
+
+		GetNode<Button>("UI/UpgradesButton").Pressed += ShowUpgrades;
+		GetNode<Button>("UI/UpgradesPanel/BackButton").Pressed += ShowMenu;
+		GetNode<Button>("UI/UpgradesPanel/SpeedBuyButton").Pressed += BuySpeed;
+		GetNode<Button>("UI/UpgradesPanel/DodgeBuyButton").Pressed += BuyDodge;
+		GetNode<Button>("UI/UpgradesPanel/DashBuyButton").Pressed += BuyDash;
+		GetNode<Button>("UI/UpgradesPanel/ShieldBuyButton").Pressed += BuyShield;
+
+		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
+
+		ShowMenu();
 	}
 
 	public override void _Process(double delta)
 	{
-		if (_gameOver)
+		if (OS.IsDebugBuild() && Input.IsActionJustPressed("cheat_coins"))
 		{
-			if (Input.IsKeyPressed(Key.R))
-				GetTree().ReloadCurrentScene();
+			GameData.Coins += 100;
+			GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
+			if (_state == GameState.Upgrades)
+			{
+				RefreshUpgradesUI();
+			}
+		}
+
+		if (_state == GameState.Menu)
+		{
+			if (Input.IsActionJustPressed("ui_accept"))
+			{
+				StartGame();
+			}
+			return;
+		}
+
+		if (_state == GameState.Upgrades)
+		{
+			return;
+		}
+
+		if (_state == GameState.GameOver)
+		{
+			if (Input.IsActionJustPressed("restart"))
+			{
+				StartGame();
+			}
+			else if (Input.IsActionJustPressed("ui_accept"))
+			{
+				ShowMenu();
+			}
 			return;
 		}
 
@@ -69,6 +125,214 @@ public partial class Main : Node2D
 		spawnTimer.WaitTime = newWaitTime;
 	}
 
+	private void ClearProjectiles()
+	{
+		foreach (Node child in GetChildren())
+		{
+			if (child is Projectile)
+			{
+				child.QueueFree();
+			}
+		}
+	}
+
+	private void ClearCoins()
+	{
+		foreach (var coin in _activeCoins)
+		{
+			if (GodotObject.IsInstanceValid(coin))
+			{
+				coin.QueueFree();
+			}
+		}
+		_activeCoins.Clear();
+	}
+
+	private void ShowMenu()
+	{
+		_state = GameState.Menu;
+
+		GetNode<Timer>("SpawnTimer").Stop();
+		GetNode<Timer>("CoinSpawnTimer").Stop();
+		ClearProjectiles();
+		ClearCoins();
+
+		GetNode<Label>("UI/ScoreLabel").Visible = false;
+		GetNode<ProgressBar>("UI/DashBar").Visible = false;
+		GetNode<Label>("UI/DashLabel").Visible = false;
+		GetNode<Control>("UI/UpgradesPanel").Visible = false;
+		GetNode<Button>("UI/UpgradesButton").Visible = true;
+
+		var gameOverLabel = GetNode<Label>("UI/GameOverLabel");
+		gameOverLabel.Visible = true;
+		gameOverLabel.Text = $"NINE LIVES\nHigh Score: {GameData.HighScore}s\n\nPress SPACE to Start";
+
+		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
+
+		_player.SetActive(false);
+	}
+
+	private void StartGame()
+	{
+		_state = GameState.Playing;
+
+		GetNode<Label>("UI/GameOverLabel").Visible = false;
+		GetNode<Button>("UI/UpgradesButton").Visible = false;
+		GetNode<Control>("UI/UpgradesPanel").Visible = false;
+		GetNode<Label>("UI/ScoreLabel").Visible = true;
+		GetNode<ProgressBar>("UI/DashBar").Visible = true;
+		GetNode<Label>("UI/DashLabel").Visible = true;
+
+		_survivalTime = 0.0;
+		_score = 0;
+		_lastDashChargeTime = 0.0;
+
+		GetNode<Label>("UI/ScoreLabel").Text = "Score: 0";
+		GetNode<Label>("UI/DashLabel").Text = "Dashes: 0";
+		GetNode<ProgressBar>("UI/DashBar").Value = 0;
+
+		ClearProjectiles();
+		ClearCoins();
+
+		_player.SetActive(true);
+
+		var spawnTimer = GetNode<Timer>("SpawnTimer");
+		spawnTimer.WaitTime = BaseSpawnWait;
+		spawnTimer.Start();
+
+		GetNode<Timer>("CoinSpawnTimer").Start();
+	}
+
+	private void ShowUpgrades()
+	{
+		_state = GameState.Upgrades;
+		GetNode<Button>("UI/UpgradesButton").Visible = false;
+		GetNode<Label>("UI/GameOverLabel").Visible = false;
+		GetNode<Control>("UI/UpgradesPanel").Visible = true;
+		RefreshUpgradesUI();
+	}
+
+	private void RefreshUpgradesUI()
+	{
+		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
+
+		var speedLabel = GetNode<Label>("UI/UpgradesPanel/SpeedLabel");
+		var speedButton = GetNode<Button>("UI/UpgradesPanel/SpeedBuyButton");
+		if (GameData.SpeedLevel >= 5)
+		{
+			speedLabel.Text = $"Speed: +{GameData.SpeedLevel * 4}% (MAX)";
+			speedButton.Text = "MAXED";
+			speedButton.Disabled = true;
+		}
+		else
+		{
+			int cost = SpeedCosts[GameData.SpeedLevel];
+			speedLabel.Text = $"Speed: +{GameData.SpeedLevel * 4}%  ->  +{(GameData.SpeedLevel + 1) * 4}%";
+			speedButton.Text = $"Buy ({cost}c)";
+			speedButton.Disabled = GameData.Coins < cost;
+		}
+
+		var dodgeLabel = GetNode<Label>("UI/UpgradesPanel/DodgeLabel");
+		var dodgeButton = GetNode<Button>("UI/UpgradesPanel/DodgeBuyButton");
+		if (GameData.DodgeLevel >= 5)
+		{
+			dodgeLabel.Text = $"Dodge Chance: +{GameData.DodgeLevel * 2}% (MAX)";
+			dodgeButton.Text = "MAXED";
+			dodgeButton.Disabled = true;
+		}
+		else
+		{
+			int cost = DodgeCosts[GameData.DodgeLevel];
+			dodgeLabel.Text = $"Dodge Chance: +{GameData.DodgeLevel * 2}%  ->  +{(GameData.DodgeLevel + 1) * 2}%";
+			dodgeButton.Text = $"Buy ({cost}c)";
+			dodgeButton.Disabled = GameData.Coins < cost;
+		}
+
+		var dashLabel = GetNode<Label>("UI/UpgradesPanel/DashUpgradeLabel");
+		var dashButton = GetNode<Button>("UI/UpgradesPanel/DashBuyButton");
+		if (GameData.DashLevel >= 5)
+		{
+			dashLabel.Text = $"Dash Charge Speed: {15 - GameData.DashLevel}s (MAX)";
+			dashButton.Text = "MAXED";
+			dashButton.Disabled = true;
+		}
+		else
+		{
+			int cost = DashCosts[GameData.DashLevel];
+			dashLabel.Text = $"Dash Charge Speed: {15 - GameData.DashLevel}s  ->  {15 - (GameData.DashLevel + 1)}s";
+			dashButton.Text = $"Buy ({cost}c)";
+			dashButton.Disabled = GameData.Coins < cost;
+		}
+
+		var shieldLabel = GetNode<Label>("UI/UpgradesPanel/ShieldLabel");
+		var shieldButton = GetNode<Button>("UI/UpgradesPanel/ShieldBuyButton");
+
+		bool allMaxed = GameData.SpeedLevel >= 5 && GameData.DodgeLevel >= 5 && GameData.DashLevel >= 5;
+
+		if (!allMaxed)
+		{
+			shieldLabel.Visible = false;
+			shieldButton.Visible = false;
+		}
+		else
+		{
+			shieldLabel.Visible = true;
+			shieldButton.Visible = true;
+
+			if (GameData.ShieldOwned)
+			{
+				shieldLabel.Text = "Shield: Ready (prevents next death)";
+				shieldButton.Text = "OWNED";
+				shieldButton.Disabled = true;
+			}
+			else
+			{
+				shieldLabel.Text = "Shield: Prevents one death";
+				shieldButton.Text = "Buy (100c)";
+				shieldButton.Disabled = GameData.Coins < 100;
+			}
+		}
+	}
+
+	private void BuySpeed()
+	{
+		if (GameData.SpeedLevel >= 5) return;
+		int cost = SpeedCosts[GameData.SpeedLevel];
+		if (GameData.Coins < cost) return;
+		GameData.Coins -= cost;
+		GameData.SpeedLevel += 1;
+		RefreshUpgradesUI();
+	}
+
+	private void BuyDodge()
+	{
+		if (GameData.DodgeLevel >= 5) return;
+		int cost = DodgeCosts[GameData.DodgeLevel];
+		if (GameData.Coins < cost) return;
+		GameData.Coins -= cost;
+		GameData.DodgeLevel += 1;
+		RefreshUpgradesUI();
+	}
+
+	private void BuyDash()
+	{
+		if (GameData.DashLevel >= 5) return;
+		int cost = DashCosts[GameData.DashLevel];
+		if (GameData.Coins < cost) return;
+		GameData.Coins -= cost;
+		GameData.DashLevel += 1;
+		RefreshUpgradesUI();
+	}
+
+	private void BuyShield()
+	{
+		if (GameData.ShieldOwned) return;
+		if (GameData.Coins < 100) return;
+		GameData.Coins -= 100;
+		GameData.ShieldOwned = true;
+		RefreshUpgradesUI();
+	}
+
 	private void OnDashChargesChanged(int newCharges)
 	{
 		GetNode<Label>("UI/DashLabel").Text = $"Dashes: {newCharges}";
@@ -79,33 +343,42 @@ public partial class Main : Node2D
 		return Mathf.Min(MaxProjectileSpeed, BaseProjectileSpeed + (float)_survivalTime * SpeedRampRate);
 	}
 
-private ProjectileType ChooseProjectileType()
-{
-	var options = new List<ProjectileType> { ProjectileType.Normal, ProjectileType.Normal, ProjectileType.Normal };
+	private ProjectileType ChooseProjectileType()
+	{
+		var options = new List<ProjectileType> { ProjectileType.Normal, ProjectileType.Normal, ProjectileType.Normal };
 
-	if (_survivalTime >= BigSlowIntroTime)
-		options.Add(ProjectileType.BigSlow);
+		if (_survivalTime >= BigSlowIntroTime)
+			options.Add(ProjectileType.BigSlow);
 
-	if (_survivalTime >= SplitterIntroTime)
-		options.Add(ProjectileType.Splitter);
+		if (_survivalTime >= SplitterIntroTime)
+			options.Add(ProjectileType.Splitter);
 
-	if (_survivalTime >= GoliathIntroTime)
-		options.Add(ProjectileType.Goliath);
+		if (_survivalTime >= GoliathIntroTime)
+			options.Add(ProjectileType.Goliath);
 
-	return options[_rng.RandiRange(0, options.Count - 1)];
-}
+		return options[_rng.RandiRange(0, options.Count - 1)];
+	}
 
 	private void OnPlayerDied()
 	{
-		_gameOver = true;
+		_state = GameState.GameOver;
+
 		GetNode<Timer>("SpawnTimer").Stop();
-		GetNode<Label>("UI/GameOverLabel").Visible = true;
-		GetNode<Label>("UI/GameOverLabel").Text = $"Game Over - Survived {_score}s - Press R to Restart";
+		GetNode<Timer>("CoinSpawnTimer").Stop();
+
+		if (_score > GameData.HighScore)
+		{
+			GameData.HighScore = _score;
+		}
+
+		var gameOverLabel = GetNode<Label>("UI/GameOverLabel");
+		gameOverLabel.Visible = true;
+		gameOverLabel.Text = $"Game Over - Survived {_score}s\nHigh Score: {GameData.HighScore}s\n\nPress R to restart, SPACE for Menu";
 	}
 
 	private void OnSpawnTimerTimeout()
 	{
-		if (_gameOver || ProjectileScene == null) return;
+		if (_state != GameState.Playing || ProjectileScene == null) return;
 
 		var projectile = ProjectileScene.Instantiate<Projectile>();
 		var type = ChooseProjectileType();
@@ -149,19 +422,19 @@ private ProjectileType ChooseProjectileType()
 			speedMultiplier = 0.7f;
 			scale = 2f;
 		}
-				else if (type == ProjectileType.Goliath)
+		else if (type == ProjectileType.Goliath)
 		{
 			speedMultiplier = 0.15f;
 			scale = 4f;
 		}
-				Color tint = Colors.White;
+
+		Color tint = Colors.White;
 		if (type == ProjectileType.Normal) tint = Colors.Red;
 		else if (type == ProjectileType.BigSlow) tint = Colors.Orange;
 		else if (type == ProjectileType.Splitter) tint = Colors.Purple;
 		else if (type == ProjectileType.Goliath) tint = Colors.DarkRed;
 
 		projectile.Modulate = tint;
-
 		projectile.Position = spawnPos;
 		projectile.Direction = direction;
 		projectile.Speed = baseSpeed * speedMultiplier;
@@ -170,5 +443,38 @@ private ProjectileType ChooseProjectileType()
 		projectile.Scale = new Vector2(scale, scale);
 
 		AddChild(projectile);
+	}
+
+	private void OnCoinTimerTimeout()
+	{
+		if (_state != GameState.Playing || CoinScene == null) return;
+		if (_activeCoins.Count >= 3) return;
+
+		var coin = CoinScene.Instantiate<Coin>();
+
+		Vector2 viewportSize = GetViewportRect().Size;
+		float margin = 40f;
+		coin.Position = new Vector2(
+			_rng.RandfRange(margin, viewportSize.X - margin),
+			_rng.RandfRange(margin, viewportSize.Y - margin)
+		);
+
+		coin.Collected += () => OnCoinCollected(coin, GetCoinValue());
+		AddChild(coin);
+		_activeCoins.Add(coin);
+	}
+
+	private void OnCoinCollected(Coin coin, int value)
+	{
+		_activeCoins.Remove(coin);
+		GameData.Coins += value;
+		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
+	}
+
+	private int GetCoinValue()
+	{
+		if (_survivalTime >= 30) return 3;
+		if (_survivalTime >= 20) return 2;
+		return 1;
 	}
 }

@@ -9,7 +9,7 @@ public partial class Player : CharacterBody2D
 	[Signal] public delegate void PlayerDiedEventHandler();
 	[Signal] public delegate void DashChargesChangedEventHandler(int newCharges);
 
-	private bool _isAlive = true;
+	private bool _isAlive = false;
 	private Vector2 _lastDirection = Vector2.Right;
 	private bool _isDashing = false;
 	private float _dashTimer = 0f;
@@ -26,9 +26,17 @@ public partial class Player : CharacterBody2D
 		}
 	}
 
-	public override void _Ready()
+	public void SetActive(bool active)
 	{
-		Position = GetViewportRect().Size / 2;
+		_isAlive = active;
+		Visible = active;
+		if (active)
+		{
+			Position = GetViewportRect().Size / 2;
+			Velocity = Vector2.Zero;
+			_isDashing = false;
+			DashCharges = 0;
+		}
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -60,7 +68,8 @@ public partial class Player : CharacterBody2D
 				StartDash();
 			}
 
-			Velocity = direction * Speed;
+			float effectiveSpeed = Speed * (1f + 0.04f * GameData.SpeedLevel);
+			Velocity = direction * effectiveSpeed;
 			MoveAndSlide();
 		}
 
@@ -82,6 +91,14 @@ public partial class Player : CharacterBody2D
 	public void Die()
 	{
 		if (!_isAlive || _isDashing) return;
+
+		if (GameData.ShieldOwned)
+		{
+			GameData.ShieldOwned = false;
+			return;
+		}
+
+		if (GD.Randf() < GameData.DodgeLevel * 0.02f) return;
 
 		_isAlive = false;
 		Visible = false;
