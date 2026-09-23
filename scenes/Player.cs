@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 public partial class Player : CharacterBody2D
 {
@@ -8,6 +9,7 @@ public partial class Player : CharacterBody2D
 
 	[Signal] public delegate void PlayerDiedEventHandler();
 	[Signal] public delegate void DashChargesChangedEventHandler(int newCharges);
+	[Signal] public delegate void LivesChangedEventHandler(int remaining, int total);
 
 	private bool _isAlive = false;
 	private Vector2 _lastDirection = Vector2.Right;
@@ -26,6 +28,11 @@ public partial class Player : CharacterBody2D
 		}
 	}
 
+	private List<int> _activeLives = new List<int>();
+	private int _totalLivesThisRun = 0;
+
+	public bool HasLife(int id) => _activeLives.Contains(id);
+
 	public void SetActive(bool active)
 	{
 		_isAlive = active;
@@ -36,6 +43,14 @@ public partial class Player : CharacterBody2D
 			Velocity = Vector2.Zero;
 			_isDashing = false;
 			DashCharges = 0;
+
+			_activeLives = new List<int>(GameData.EquippedLives);
+			if (_activeLives.Count == 0)
+			{
+				_activeLives.Add(0);
+			}
+			_totalLivesThisRun = _activeLives.Count;
+			EmitSignal(SignalName.LivesChanged, _activeLives.Count, _totalLivesThisRun);
 		}
 	}
 
@@ -68,7 +83,8 @@ public partial class Player : CharacterBody2D
 				StartDash();
 			}
 
-			float effectiveSpeed = Speed * (1f + 0.04f * GameData.SpeedLevel);
+			float speedBonus = 0.04f * GameData.SpeedLevel + (HasLife(2) ? 0.20f : 0f);
+			float effectiveSpeed = Speed * (1f + speedBonus);
 			Velocity = direction * effectiveSpeed;
 			MoveAndSlide();
 		}
@@ -86,19 +102,30 @@ public partial class Player : CharacterBody2D
 		_dashTimer = DashDuration;
 		_dashDirection = _lastDirection;
 		DashCharges -= 1;
+		GameData.TotalDashes += 1;
 	}
 
 	public void Die()
 	{
 		if (!_isAlive || _isDashing) return;
 
-		if (GameData.ShieldOwned)
+		float dodgeChance = GameData.DodgeLevel * 0.02f + (HasLife(3) ? 0.10f : 0f);
+		if (GD.Randf() < dodgeChance)
 		{
-			GameData.ShieldOwned = false;
+			GameData.TotalDodges += 1;
 			return;
 		}
 
-		if (GD.Randf() < GameData.DodgeLevel * 0.02f) return;
+		if (_activeLives.Count > 0)
+		{
+			_activeLives.RemoveAt(0);
+			EmitSignal(SignalName.LivesChanged, _activeLives.Count, _totalLivesThisRun);
+
+			if (_activeLives.Count > 0)
+			{
+				return;
+			}
+		}
 
 		_isAlive = false;
 		Visible = false;

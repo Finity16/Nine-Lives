@@ -9,7 +9,7 @@ public partial class Main : Node2D
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 	private Player _player;
 
-	private enum GameState { Menu, Playing, GameOver, Upgrades }
+	private enum GameState { Menu, Playing, GameOver, Upgrades, Lives }
 	private GameState _state = GameState.Menu;
 
 	private double _survivalTime = 0.0;
@@ -28,9 +28,10 @@ public partial class Main : Node2D
 	private const float GoliathIntroTime = 30f;
 
 	private double _lastDashChargeTime = 0.0;
-	private float DashChargeInterval => Mathf.Max(10f, 15f - GameData.DashLevel);
+	private float DashChargeInterval => Mathf.Max(5f, 15f - GameData.DashLevel - (_player.HasLife(4) ? 5f : 0f));
 
 	private List<Coin> _activeCoins = new List<Coin>();
+	private bool[] _wasUnlockedAtRunStart = new bool[9];
 
 	private static readonly int[] SpeedCosts = { 10, 20, 35, 55, 80 };
 	private static readonly int[] DodgeCosts = { 15, 30, 50, 75, 110 };
@@ -50,13 +51,22 @@ public partial class Main : Node2D
 		_player = GetNode<Player>("Player");
 		_player.PlayerDied += OnPlayerDied;
 		_player.DashChargesChanged += OnDashChargesChanged;
+		_player.LivesChanged += OnLivesChanged;
 
 		GetNode<Button>("UI/UpgradesButton").Pressed += ShowUpgrades;
 		GetNode<Button>("UI/UpgradesPanel/BackButton").Pressed += ShowMenu;
 		GetNode<Button>("UI/UpgradesPanel/SpeedBuyButton").Pressed += BuySpeed;
 		GetNode<Button>("UI/UpgradesPanel/DodgeBuyButton").Pressed += BuyDodge;
 		GetNode<Button>("UI/UpgradesPanel/DashBuyButton").Pressed += BuyDash;
-		GetNode<Button>("UI/UpgradesPanel/ShieldBuyButton").Pressed += BuyShield;
+
+		GetNode<Button>("UI/LivesButton").Pressed += ShowLives;
+		GetNode<Button>("UI/LivesPanel/LivesBackButton").Pressed += ShowMenu;
+
+		for (int i = 0; i < 9; i++)
+		{
+			int capturedId = i;
+			GetNode<Button>($"UI/LivesPanel/LivesGrid/Life{i}Button").Pressed += () => OnLifeButtonPressed(capturedId);
+		}
 
 		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
 
@@ -68,11 +78,10 @@ public partial class Main : Node2D
 		if (OS.IsDebugBuild() && Input.IsActionJustPressed("cheat_coins"))
 		{
 			GameData.Coins += 100;
+			GameData.TotalCoinsCollected += 100;
 			GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
-			if (_state == GameState.Upgrades)
-			{
-				RefreshUpgradesUI();
-			}
+			if (_state == GameState.Upgrades) RefreshUpgradesUI();
+			if (_state == GameState.Lives) RefreshLivesUI();
 		}
 
 		if (_state == GameState.Menu)
@@ -84,7 +93,7 @@ public partial class Main : Node2D
 			return;
 		}
 
-		if (_state == GameState.Upgrades)
+		if (_state == GameState.Upgrades || _state == GameState.Lives)
 		{
 			return;
 		}
@@ -148,6 +157,19 @@ public partial class Main : Node2D
 		_activeCoins.Clear();
 	}
 
+	private void HideAllPanels()
+	{
+		GetNode<Label>("UI/ScoreLabel").Visible = false;
+		GetNode<ProgressBar>("UI/DashBar").Visible = false;
+		GetNode<Label>("UI/DashLabel").Visible = false;
+		GetNode<Label>("UI/LivesIndicatorLabel").Visible = false;
+		GetNode<Control>("UI/UpgradesPanel").Visible = false;
+		GetNode<Control>("UI/LivesPanel").Visible = false;
+		GetNode<Button>("UI/UpgradesButton").Visible = false;
+		GetNode<Button>("UI/LivesButton").Visible = false;
+		GetNode<Label>("UI/GameOverLabel").Visible = false;
+	}
+
 	private void ShowMenu()
 	{
 		_state = GameState.Menu;
@@ -157,11 +179,9 @@ public partial class Main : Node2D
 		ClearProjectiles();
 		ClearCoins();
 
-		GetNode<Label>("UI/ScoreLabel").Visible = false;
-		GetNode<ProgressBar>("UI/DashBar").Visible = false;
-		GetNode<Label>("UI/DashLabel").Visible = false;
-		GetNode<Control>("UI/UpgradesPanel").Visible = false;
+		HideAllPanels();
 		GetNode<Button>("UI/UpgradesButton").Visible = true;
+		GetNode<Button>("UI/LivesButton").Visible = true;
 
 		var gameOverLabel = GetNode<Label>("UI/GameOverLabel");
 		gameOverLabel.Visible = true;
@@ -176,12 +196,16 @@ public partial class Main : Node2D
 	{
 		_state = GameState.Playing;
 
-		GetNode<Label>("UI/GameOverLabel").Visible = false;
-		GetNode<Button>("UI/UpgradesButton").Visible = false;
-		GetNode<Control>("UI/UpgradesPanel").Visible = false;
+		HideAllPanels();
 		GetNode<Label>("UI/ScoreLabel").Visible = true;
 		GetNode<ProgressBar>("UI/DashBar").Visible = true;
 		GetNode<Label>("UI/DashLabel").Visible = true;
+		GetNode<Label>("UI/LivesIndicatorLabel").Visible = true;
+
+		for (int i = 0; i < 9; i++)
+		{
+			_wasUnlockedAtRunStart[i] = GameData.IsLifeUnlocked(i);
+		}
 
 		_survivalTime = 0.0;
 		_score = 0;
@@ -206,10 +230,71 @@ public partial class Main : Node2D
 	private void ShowUpgrades()
 	{
 		_state = GameState.Upgrades;
-		GetNode<Button>("UI/UpgradesButton").Visible = false;
-		GetNode<Label>("UI/GameOverLabel").Visible = false;
+		HideAllPanels();
 		GetNode<Control>("UI/UpgradesPanel").Visible = true;
 		RefreshUpgradesUI();
+	}
+
+	private void ShowLives()
+	{
+		_state = GameState.Lives;
+		HideAllPanels();
+		GetNode<Control>("UI/LivesPanel").Visible = true;
+		RefreshLivesUI();
+	}
+
+	private void OnLifeButtonPressed(int id)
+	{
+		if (!GameData.IsLifeUnlocked(id)) return;
+
+		if (GameData.EquippedLives.Contains(id))
+		{
+			GameData.EquippedLives.Remove(id);
+		}
+		else
+		{
+			if (GameData.EquippedLives.Count >= 3) return;
+			GameData.EquippedLives.Add(id);
+		}
+
+		RefreshLivesUI();
+	}
+
+	private void RefreshLivesUI()
+	{
+		for (int i = 0; i < 9; i++)
+		{
+			var button = GetNode<Button>($"UI/LivesPanel/LivesGrid/Life{i}Button");
+			bool unlocked = GameData.IsLifeUnlocked(i);
+			bool equipped = GameData.EquippedLives.Contains(i);
+
+			if (!unlocked)
+			{
+				button.Text = $"???\n{GameData.GetUnlockCondition(i)}";
+				button.Disabled = true;
+			}
+			else
+			{
+				string prefix = equipped ? "[EQUIPPED] " : "";
+				button.Text = $"{prefix}{GameData.GetLifeName(i)}\n{GameData.GetPassiveDescription(i)}";
+				button.Disabled = false;
+			}
+		}
+
+		var orderLabel = GetNode<Label>("UI/LivesPanel/EquippedOrderLabel");
+		if (GameData.EquippedLives.Count == 0)
+		{
+			orderLabel.Text = "No lives equipped!";
+		}
+		else
+		{
+			var names = new List<string>();
+			foreach (var id in GameData.EquippedLives)
+			{
+				names.Add(GameData.GetLifeName(id));
+			}
+			orderLabel.Text = "Order (lost first -> last): " + string.Join(" -> ", names);
+		}
 	}
 
 	private void RefreshUpgradesUI()
@@ -263,35 +348,6 @@ public partial class Main : Node2D
 			dashButton.Text = $"Buy ({cost}c)";
 			dashButton.Disabled = GameData.Coins < cost;
 		}
-
-		var shieldLabel = GetNode<Label>("UI/UpgradesPanel/ShieldLabel");
-		var shieldButton = GetNode<Button>("UI/UpgradesPanel/ShieldBuyButton");
-
-		bool allMaxed = GameData.SpeedLevel >= 5 && GameData.DodgeLevel >= 5 && GameData.DashLevel >= 5;
-
-		if (!allMaxed)
-		{
-			shieldLabel.Visible = false;
-			shieldButton.Visible = false;
-		}
-		else
-		{
-			shieldLabel.Visible = true;
-			shieldButton.Visible = true;
-
-			if (GameData.ShieldOwned)
-			{
-				shieldLabel.Text = "Shield: Ready (prevents next death)";
-				shieldButton.Text = "OWNED";
-				shieldButton.Disabled = true;
-			}
-			else
-			{
-				shieldLabel.Text = "Shield: Prevents one death";
-				shieldButton.Text = "Buy (100c)";
-				shieldButton.Disabled = GameData.Coins < 100;
-			}
-		}
 	}
 
 	private void BuySpeed()
@@ -324,18 +380,14 @@ public partial class Main : Node2D
 		RefreshUpgradesUI();
 	}
 
-	private void BuyShield()
-	{
-		if (GameData.ShieldOwned) return;
-		if (GameData.Coins < 100) return;
-		GameData.Coins -= 100;
-		GameData.ShieldOwned = true;
-		RefreshUpgradesUI();
-	}
-
 	private void OnDashChargesChanged(int newCharges)
 	{
 		GetNode<Label>("UI/DashLabel").Text = $"Dashes: {newCharges}";
+	}
+
+	private void OnLivesChanged(int remaining, int total)
+	{
+		GetNode<Label>("UI/LivesIndicatorLabel").Text = $"Lives: {remaining}/{total}";
 	}
 
 	private float GetCurrentProjectileSpeed()
@@ -371,9 +423,22 @@ public partial class Main : Node2D
 			GameData.HighScore = _score;
 		}
 
+		var newlyUnlocked = new List<string>();
+		for (int i = 0; i < 9; i++)
+		{
+			if (!_wasUnlockedAtRunStart[i] && GameData.IsLifeUnlocked(i))
+			{
+				newlyUnlocked.Add(GameData.GetLifeName(i));
+			}
+		}
+
+		string unlockMessage = newlyUnlocked.Count > 0
+			? "\n\nUnlocked: " + string.Join(", ", newlyUnlocked) + "!"
+			: "";
+
 		var gameOverLabel = GetNode<Label>("UI/GameOverLabel");
 		gameOverLabel.Visible = true;
-		gameOverLabel.Text = $"Game Over - Survived {_score}s\nHigh Score: {GameData.HighScore}s\n\nPress R to restart, SPACE for Menu";
+		gameOverLabel.Text = $"Game Over - Survived {_score}s\nHigh Score: {GameData.HighScore}s{unlockMessage}\n\nPress R to restart, SPACE for Menu";
 	}
 
 	private void OnSpawnTimerTimeout()
@@ -467,7 +532,11 @@ public partial class Main : Node2D
 	private void OnCoinCollected(Coin coin, int value)
 	{
 		_activeCoins.Remove(coin);
-		GameData.Coins += value;
+
+		int finalValue = _player.HasLife(1) ? value * 2 : value;
+
+		GameData.Coins += finalValue;
+		GameData.TotalCoinsCollected += finalValue;
 		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
 	}
 
