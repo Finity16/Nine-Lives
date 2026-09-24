@@ -28,7 +28,18 @@ public partial class Projectile : Area2D
 
 	public override void _PhysicsProcess(double delta)
 	{
-		Position += Direction * Speed * (float)delta;
+		float effectiveSpeed = Speed;
+
+		if (Player.Instance != null && Player.Instance.HasLife(6))
+		{
+			float distance = Position.DistanceTo(Player.Instance.Position);
+			if (distance < 60f)
+			{
+				effectiveSpeed = Speed * 0.75f;
+			}
+		}
+
+		Position += Direction * effectiveSpeed * (float)delta;
 
 		if (Type == ProjectileType.Splitter && !_hasSplit)
 		{
@@ -76,6 +87,11 @@ public partial class Projectile : Area2D
 	{
 		if (body is Player player)
 		{
+			if (player.IsDashKillActive())
+			{
+				QueueFree();
+				return;
+			}
 			player.Die();
 		}
 	}

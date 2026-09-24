@@ -83,6 +83,12 @@ public partial class Main : Node2D
 			if (_state == GameState.Upgrades) RefreshUpgradesUI();
 			if (_state == GameState.Lives) RefreshLivesUI();
 		}
+		
+		if (OS.IsDebugBuild() && Input.IsActionJustPressed("cheat_unlock_lives"))
+		{
+			GameData.ForceUnlockAll = true;
+			if (_state == GameState.Lives) RefreshLivesUI();
+		}
 
 		if (_state == GameState.Menu)
 		{
@@ -413,32 +419,42 @@ public partial class Main : Node2D
 
 	private void OnPlayerDied()
 	{
-		_state = GameState.GameOver;
+	_state = GameState.GameOver;
 
-		GetNode<Timer>("SpawnTimer").Stop();
-		GetNode<Timer>("CoinSpawnTimer").Stop();
+	GetNode<Timer>("SpawnTimer").Stop();
+	GetNode<Timer>("CoinSpawnTimer").Stop();
 
-		if (_score > GameData.HighScore)
+	if (_score > GameData.HighScore)
+	{
+		GameData.HighScore = _score;
+	}
+
+	if (_score >= 35 && !_player.DashedThisRun)
+	{
+		GameData.MonkUnlocked = true;
+	}
+
+	if (_score >= 30 && _player.TotalLivesThisRun == 1)
+	{
+		GameData.MonarchUnlocked = true;
+	}
+
+	var newlyUnlocked = new List<string>();
+	for (int i = 0; i < 9; i++)
+	{
+		if (!_wasUnlockedAtRunStart[i] && GameData.IsLifeUnlocked(i))
 		{
-			GameData.HighScore = _score;
+			newlyUnlocked.Add(GameData.GetLifeName(i));
 		}
+	}
 
-		var newlyUnlocked = new List<string>();
-		for (int i = 0; i < 9; i++)
-		{
-			if (!_wasUnlockedAtRunStart[i] && GameData.IsLifeUnlocked(i))
-			{
-				newlyUnlocked.Add(GameData.GetLifeName(i));
-			}
-		}
+	string unlockMessage = newlyUnlocked.Count > 0
+		? "\n\nUnlocked: " + string.Join(", ", newlyUnlocked) + "!"
+		: "";
 
-		string unlockMessage = newlyUnlocked.Count > 0
-			? "\n\nUnlocked: " + string.Join(", ", newlyUnlocked) + "!"
-			: "";
-
-		var gameOverLabel = GetNode<Label>("UI/GameOverLabel");
-		gameOverLabel.Visible = true;
-		gameOverLabel.Text = $"Game Over - Survived {_score}s\nHigh Score: {GameData.HighScore}s{unlockMessage}\n\nPress R to restart, SPACE for Menu";
+	var gameOverLabel = GetNode<Label>("UI/GameOverLabel");
+	gameOverLabel.Visible = true;
+	gameOverLabel.Text = $"Game Over - Survived {_score}s\nHigh Score: {GameData.HighScore}s{unlockMessage}\n\nPress R to restart, SPACE for Menu";
 	}
 
 	private void OnSpawnTimerTimeout()
@@ -538,6 +554,7 @@ public partial class Main : Node2D
 		GameData.Coins += finalValue;
 		GameData.TotalCoinsCollected += finalValue;
 		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
+		_player.TriggerSailorBoost();
 	}
 
 	private int GetCoinValue()
@@ -545,5 +562,6 @@ public partial class Main : Node2D
 		if (_survivalTime >= 30) return 3;
 		if (_survivalTime >= 20) return 2;
 		return 1;
+	
 	}
 }
