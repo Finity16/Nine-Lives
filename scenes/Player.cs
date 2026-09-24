@@ -12,6 +12,7 @@ public partial class Player : CharacterBody2D
 	[Signal] public delegate void PlayerDiedEventHandler();
 	[Signal] public delegate void DashChargesChangedEventHandler(int newCharges);
 	[Signal] public delegate void LivesChangedEventHandler(int remaining, int total);
+	[Signal] public delegate void HitEventHandler();
 
 	private bool _isAlive = false;
 	private Vector2 _lastDirection = Vector2.Right;
@@ -35,6 +36,10 @@ public partial class Player : CharacterBody2D
 	public int TotalLivesThisRun = 0;
 	public bool DashedThisRun = false;
 
+	private List<(float time, Vector2 pos)> _positionHistory = new List<(float, Vector2)>();
+	private float _historyClock = 0f;
+	private const float MaxHistoryDuration = 6f;
+
 	public bool HasLife(int id) => _activeLives.Contains(id);
 
 	public override void _Ready()
@@ -53,6 +58,10 @@ public partial class Player : CharacterBody2D
 			_isDashing = false;
 			DashCharges = 0;
 			DashedThisRun = false;
+			Rotation = 0f;
+
+			_positionHistory.Clear();
+			_historyClock = 0f;
 
 			_activeLives = new List<int>(GameData.EquippedLives);
 			if (_activeLives.Count == 0)
@@ -74,15 +83,46 @@ public partial class Player : CharacterBody2D
 
 	public bool IsDashKillActive() => _isDashing && HasLife(7);
 
+	public Vector2 GetPositionAtDelay(float delay)
+	{
+		if (_positionHistory.Count == 0) return Position;
+
+		float targetTime = _historyClock - delay;
+
+		for (int i = 0; i < _positionHistory.Count; i++)
+		{
+			if (_positionHistory[i].time >= targetTime)
+			{
+				return _positionHistory[i].pos;
+			}
+		}
+
+		return _positionHistory[0].pos;
+	}
+
 	public override void _PhysicsProcess(double delta)
 	{
 		if (!_isAlive) return;
+
+		Vector2 viewportSize = GetViewportRect().Size;
 
 		if (_isDashing)
 		{
 			_dashTimer -= (float)delta;
 			Velocity = _dashDirection * DashSpeed;
 			MoveAndSlide();
+
+			Vector2 clamped = new Vector2(
+				Mathf.Clamp(Position.X, 0, viewportSize.X),
+				Mathf.Clamp(Position.Y, 0, viewportSize.Y)
+			);
+
+			if (clamped != Position)
+			{
+				_isDashing = false;
+			}
+
+			Position = clamped;
 
 			if (_dashTimer <= 0f)
 			{
@@ -118,13 +158,19 @@ public partial class Player : CharacterBody2D
 
 			Velocity = direction * effectiveSpeed;
 			MoveAndSlide();
+
+			Position = new Vector2(
+				Mathf.Clamp(Position.X, 0, viewportSize.X),
+				Mathf.Clamp(Position.Y, 0, viewportSize.Y)
+			);
 		}
 
-		Vector2 viewportSize = GetViewportRect().Size;
-		Position = new Vector2(
-			Mathf.Clamp(Position.X, 0, viewportSize.X),
-			Mathf.Clamp(Position.Y, 0, viewportSize.Y)
-		);
+		_historyClock += (float)delta;
+		_positionHistory.Add((_historyClock, Position));
+		while (_positionHistory.Count > 0 && _historyClock - _positionHistory[0].time > MaxHistoryDuration)
+		{
+			_positionHistory.RemoveAt(0);
+		}
 	}
 
 	private void StartDash()
@@ -137,6 +183,13 @@ public partial class Player : CharacterBody2D
 		DashedThisRun = true;
 	}
 
+	private void PlayDodgeSpin()
+	{
+		var tween = CreateTween();
+		tween.TweenProperty(this, "rotation", Rotation + Mathf.Tau, 0.3f);
+		tween.TweenCallback(Callable.From(() => { Rotation = 0f; }));
+	}
+
 	public void Die()
 	{
 		if (!_isAlive || _isDashing) return;
@@ -145,8 +198,11 @@ public partial class Player : CharacterBody2D
 		if (GD.Randf() < dodgeChance)
 		{
 			GameData.TotalDodges += 1;
+			PlayDodgeSpin();
 			return;
 		}
+
+		EmitSignal(SignalName.Hit);
 
 		if (_activeLives.Count > 0)
 		{

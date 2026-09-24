@@ -33,6 +33,10 @@ public partial class Main : Node2D
 	private List<Coin> _activeCoins = new List<Coin>();
 	private bool[] _wasUnlockedAtRunStart = new bool[9];
 
+	private bool _shadow50Spawned = false;
+	private bool _shadow75Spawned = false;
+	private bool _shadow100Spawned = false;
+
 	private static readonly int[] SpeedCosts = { 10, 20, 35, 55, 80 };
 	private static readonly int[] DodgeCosts = { 15, 30, 50, 75, 110 };
 	private static readonly int[] DashCosts = { 20, 40, 65, 95, 140 };
@@ -52,6 +56,7 @@ public partial class Main : Node2D
 		_player.PlayerDied += OnPlayerDied;
 		_player.DashChargesChanged += OnDashChargesChanged;
 		_player.LivesChanged += OnLivesChanged;
+		_player.Hit += OnPlayerHit;
 
 		GetNode<Button>("UI/UpgradesButton").Pressed += ShowUpgrades;
 		GetNode<Button>("UI/UpgradesPanel/BackButton").Pressed += ShowMenu;
@@ -83,7 +88,7 @@ public partial class Main : Node2D
 			if (_state == GameState.Upgrades) RefreshUpgradesUI();
 			if (_state == GameState.Lives) RefreshLivesUI();
 		}
-		
+
 		if (OS.IsDebugBuild() && Input.IsActionJustPressed("cheat_unlock_lives"))
 		{
 			GameData.ForceUnlockAll = true;
@@ -126,6 +131,22 @@ public partial class Main : Node2D
 			GetNode<Label>("UI/ScoreLabel").Text = $"Score: {_score}";
 		}
 
+		if (_score >= 50 && !_shadow50Spawned)
+		{
+			SpawnShadow(1.5f);
+			_shadow50Spawned = true;
+		}
+		if (_score >= 75 && !_shadow75Spawned)
+		{
+			SpawnShadow(3f);
+			_shadow75Spawned = true;
+		}
+		if (_score >= 100 && !_shadow100Spawned)
+		{
+			SpawnShadow(5f);
+			_shadow100Spawned = true;
+		}
+
 		if (_survivalTime - _lastDashChargeTime >= DashChargeInterval)
 		{
 			_lastDashChargeTime += DashChargeInterval;
@@ -138,6 +159,14 @@ public partial class Main : Node2D
 		var spawnTimer = GetNode<Timer>("SpawnTimer");
 		float newWaitTime = Mathf.Max(MinSpawnWait, BaseSpawnWait - (float)_survivalTime * SpawnRampRate);
 		spawnTimer.WaitTime = newWaitTime;
+	}
+
+	private void OnPlayerHit()
+	{
+		var flash = GetNode<ColorRect>("UI/HitFlash");
+		flash.Color = new Color(1f, 0f, 0f, 0.4f);
+		var tween = CreateTween();
+		tween.TweenProperty(flash, "color:a", 0f, 0.4f);
 	}
 
 	private void ClearProjectiles()
@@ -216,6 +245,9 @@ public partial class Main : Node2D
 		_survivalTime = 0.0;
 		_score = 0;
 		_lastDashChargeTime = 0.0;
+		_shadow50Spawned = false;
+		_shadow75Spawned = false;
+		_shadow100Spawned = false;
 
 		GetNode<Label>("UI/ScoreLabel").Text = "Score: 0";
 		GetNode<Label>("UI/DashLabel").Text = "Dashes: 0";
@@ -419,42 +451,42 @@ public partial class Main : Node2D
 
 	private void OnPlayerDied()
 	{
-	_state = GameState.GameOver;
+		_state = GameState.GameOver;
 
-	GetNode<Timer>("SpawnTimer").Stop();
-	GetNode<Timer>("CoinSpawnTimer").Stop();
+		GetNode<Timer>("SpawnTimer").Stop();
+		GetNode<Timer>("CoinSpawnTimer").Stop();
 
-	if (_score > GameData.HighScore)
-	{
-		GameData.HighScore = _score;
-	}
-
-	if (_score >= 35 && !_player.DashedThisRun)
-	{
-		GameData.MonkUnlocked = true;
-	}
-
-	if (_score >= 30 && _player.TotalLivesThisRun == 1)
-	{
-		GameData.MonarchUnlocked = true;
-	}
-
-	var newlyUnlocked = new List<string>();
-	for (int i = 0; i < 9; i++)
-	{
-		if (!_wasUnlockedAtRunStart[i] && GameData.IsLifeUnlocked(i))
+		if (_score > GameData.HighScore)
 		{
-			newlyUnlocked.Add(GameData.GetLifeName(i));
+			GameData.HighScore = _score;
 		}
-	}
 
-	string unlockMessage = newlyUnlocked.Count > 0
-		? "\n\nUnlocked: " + string.Join(", ", newlyUnlocked) + "!"
-		: "";
+		if (_score >= 35 && !_player.DashedThisRun)
+		{
+			GameData.MonkUnlocked = true;
+		}
 
-	var gameOverLabel = GetNode<Label>("UI/GameOverLabel");
-	gameOverLabel.Visible = true;
-	gameOverLabel.Text = $"Game Over - Survived {_score}s\nHigh Score: {GameData.HighScore}s{unlockMessage}\n\nPress R to restart, SPACE for Menu";
+		if (_score >= 30 && _player.TotalLivesThisRun == 1)
+		{
+			GameData.MonarchUnlocked = true;
+		}
+
+		var newlyUnlocked = new List<string>();
+		for (int i = 0; i < 9; i++)
+		{
+			if (!_wasUnlockedAtRunStart[i] && GameData.IsLifeUnlocked(i))
+			{
+				newlyUnlocked.Add(GameData.GetLifeName(i));
+			}
+		}
+
+		string unlockMessage = newlyUnlocked.Count > 0
+			? "\n\nUnlocked: " + string.Join(", ", newlyUnlocked) + "!"
+			: "";
+
+		var gameOverLabel = GetNode<Label>("UI/GameOverLabel");
+		gameOverLabel.Visible = true;
+		gameOverLabel.Text = $"Game Over - Survived {_score}s\nHigh Score: {GameData.HighScore}s{unlockMessage}\n\nPress R to restart, SPACE for Menu";
 	}
 
 	private void OnSpawnTimerTimeout()
@@ -491,39 +523,40 @@ public partial class Main : Node2D
 
 		float baseSpeed = GetCurrentProjectileSpeed();
 		float speedMultiplier = 1f;
-		float scale = 1f;
 
 		if (type == ProjectileType.BigSlow)
 		{
 			speedMultiplier = 0.4f;
-			scale = 2.5f;
 		}
 		else if (type == ProjectileType.Splitter)
 		{
 			speedMultiplier = 0.7f;
-			scale = 2f;
 		}
 		else if (type == ProjectileType.Goliath)
 		{
 			speedMultiplier = 0.15f;
-			scale = 4f;
 		}
 
-		Color tint = Colors.White;
-		if (type == ProjectileType.Normal) tint = Colors.Red;
-		else if (type == ProjectileType.BigSlow) tint = Colors.Orange;
-		else if (type == ProjectileType.Splitter) tint = Colors.Purple;
-		else if (type == ProjectileType.Goliath) tint = Colors.DarkRed;
+	projectile.Type = type;
+	projectile.Position = spawnPos;
+	projectile.Direction = direction;
+	projectile.Speed = baseSpeed * speedMultiplier;
+	projectile.ProjectileScene = ProjectileScene;
 
-		projectile.Modulate = tint;
-		projectile.Position = spawnPos;
-		projectile.Direction = direction;
-		projectile.Speed = baseSpeed * speedMultiplier;
-		projectile.Type = type;
-		projectile.ProjectileScene = ProjectileScene;
-		projectile.Scale = new Vector2(scale, scale);
+	AddChild(projectile);
+	}
 
-		AddChild(projectile);
+	private void SpawnShadow(float delay)
+	{
+		if (ProjectileScene == null) return;
+
+		var shadow = ProjectileScene.Instantiate<Projectile>();
+		shadow.Type = ProjectileType.Shadow;
+		shadow.ShadowDelay = delay;
+		shadow.Modulate = new Color(0.05f, 0.05f, 0.05f, 0.9f);
+		shadow.Position = _player.GetPositionAtDelay(delay);
+
+		AddChild(shadow);
 	}
 
 	private void OnCoinTimerTimeout()
@@ -559,9 +592,7 @@ public partial class Main : Node2D
 
 	private int GetCoinValue()
 	{
-		if (_survivalTime >= 30) return 3;
-		if (_survivalTime >= 20) return 2;
-		return 1;
-	
+		int value = 1 + (int)(_survivalTime / 20.0);
+		return Mathf.Min(value, 5);
 	}
 }

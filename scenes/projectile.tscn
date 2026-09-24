@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://com2gdwaawoqy"]
 
 [ext_resource type="Script" uid="uid://cu82itysnygvy" path="res://scenes/Projectile.cs" id="1_c8fcr"]
-[ext_resource type="Texture2D" uid="uid://8cmtbqlt4ort" path="res://icon.svg" id="2_q3m7n"]
+[ext_resource type="Texture2D" uid="uid://cwokunivrvale" path="res://sprites/Projectile.png" id="2_q3m7n"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_ob1uy"]
 radius = 16.03122
@@ -13,8 +13,8 @@ script = ExtResource("1_c8fcr")
 shape = SubResource("CircleShape2D_ob1uy")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=2041112357]
-position = Vector2(3.8146973e-06, 7.1525574e-07)
-scale = Vector2(0.21484372, 0.21484375)
+position = Vector2(-0.29639196, 0.29638743)
+scale = Vector2(0.3718557, 0.3718555)
 texture = ExtResource("2_q3m7n")
 
 [node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="." unique_id=1866600357]
