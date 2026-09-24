@@ -49,12 +49,12 @@ public partial class Projectile : Area2D
 	{
 	switch (Type)
 	{
-		case ProjectileType.Normal: return 10f;
-		case ProjectileType.BigSlow: return 25f;
-		case ProjectileType.Splitter: return 20f;
-		case ProjectileType.Goliath: return 40f;
-		case ProjectileType.Shadow: return 10f;
-		default: return 10f;
+		case ProjectileType.Normal: return 14f;
+		case ProjectileType.BigSlow: return 35f;
+		case ProjectileType.Splitter: return 28f;
+		case ProjectileType.Goliath: return 56f;
+		case ProjectileType.Shadow: return 14f;
+		default: return 14f;
 	}
 	}
 

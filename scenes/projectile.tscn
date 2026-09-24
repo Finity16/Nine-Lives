@@ -13,8 +13,8 @@ script = ExtResource("1_c8fcr")
 shape = SubResource("CircleShape2D_ob1uy")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=2041112357]
-position = Vector2(-0.29639196, 0.29638743)
-scale = Vector2(0.3718557, 0.3718555)
+position = Vector2(-1.9073486e-06, -4.4703484e-08)
+scale = Vector2(0.4349399, 0.42160648)
 texture = ExtResource("2_q3m7n")
 
 [node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="." unique_id=1866600357]
