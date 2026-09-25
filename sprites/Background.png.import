@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dxaoopjj8fgjb"
-path="res://.godot/imported/Goliath.png-06a41e6ade15e9444c4a0cff35fb0239.ctex"
+uid="uid://clduevgqlx4vl"
+path="res://.godot/imported/Background.png-2a345e972bbd801a2b9c1fc260ec020b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/Goliath.png"
-dest_files=["res://.godot/imported/Goliath.png-06a41e6ade15e9444c4a0cff35fb0239.ctex"]
+source_file="res://sprites/Background.png"
+dest_files=["res://.godot/imported/Background.png-2a345e972bbd801a2b9c1fc260ec020b.ctex"]
 
 [params]
 

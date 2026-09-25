@@ -60,8 +60,8 @@ public static class GameData
 			case 3: return "Dodge an attack once";
 			case 4: return "Dash 10 times";
 			case 5: return "Reach 50 points in a run";
-			case 6: return HighScore >= 50 ? "Reach 35 points without dashing" : "???";
-			case 7: return HighScore >= 50 ? "Reach 30 points with only 1 life equipped" : "???";
+			case 6: return HighScore >= 50 ? "Reach 45 points without dashing" : "???";
+			case 7: return HighScore >= 50 ? "Reach 45 points with only 1 life equipped" : "???";
 			default: return "Coming in a future update";
 		}
 	}

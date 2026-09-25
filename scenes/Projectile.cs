@@ -40,7 +40,7 @@ public partial class Projectile : Area2D
 				sprite.Texture = GD.Load<Texture2D>("res://sprites/goliath.png");
 				break;
 			case ProjectileType.Shadow:
-				sprite.Texture = GD.Load<Texture2D>("res://sprites/projectile.png");
+				sprite.Texture = GD.Load<Texture2D>("res://sprites/shadow.png");
 				break;
 		}
 	}

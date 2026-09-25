@@ -8,6 +8,9 @@ public partial class Coin : Area2D
 	public override void _Ready()
 	{
 		BodyEntered += OnBodyEntered;
+		
+		var sprite = GetNode<Sprite2D>("Sprite2D");
+		sprite.Texture = GD.Load<Texture2D>("res://sprites/coin.png");
 	}
 
 	private void OnBodyEntered(Node2D body)

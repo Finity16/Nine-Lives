@@ -1,18 +1,24 @@
 [gd_scene format=3 uid="uid://cs35k2e5u3e4v"]
 
 [ext_resource type="Script" uid="uid://b5ptok4d1h6bx" path="res://scenes/Main.cs" id="1_0wfyh"]
-[ext_resource type="Texture2D" uid="uid://8cmtbqlt4ort" path="res://icon.svg" id="1_o5qli"]
 [ext_resource type="PackedScene" uid="uid://com2gdwaawoqy" path="res://scenes/projectile.tscn" id="2_jyhfs"]
 [ext_resource type="Script" uid="uid://cnx8cp5iomh2l" path="res://scenes/Player.cs" id="2_sugp2"]
 [ext_resource type="PackedScene" uid="uid://bc1urfvpuamnj" path="res://scenes/coin.tscn" id="3_tbgi4"]
+[ext_resource type="Texture2D" uid="uid://clduevgqlx4vl" path="res://sprites/Background.png" id="4_tefeu"]
+[ext_resource type="Texture2D" uid="uid://ry5i2q2hd32" path="res://sprites/Player.png" id="6_o6xl0"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_ob1uy"]
-radius = 52.009613
+radius = 46.043457
 
 [node name="Main" type="Node2D" unique_id=2066901537]
 script = ExtResource("1_0wfyh")
 ProjectileScene = ExtResource("2_jyhfs")
 CoinScene = ExtResource("3_tbgi4")
+
+[node name="Background" type="Sprite2D" parent="." unique_id=1178110572]
+position = Vector2(577, 327.5)
+scale = Vector2(1.0490909, 0.876)
+texture = ExtResource("4_tefeu")
 
 [node name="Player" type="CharacterBody2D" parent="." unique_id=2020435457]
 position = Vector2(574, 313)
@@ -22,8 +28,9 @@ script = ExtResource("2_sugp2")
 shape = SubResource("CircleShape2D_ob1uy")
 
 [node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=1738851968]
-scale = Vector2(0.8310546, 0.8359375)
-texture = ExtResource("1_o5qli")
+position = Vector2(0.05908203, -0.25390625)
+scale = Vector2(0.44752738, 0.45396876)
+texture = ExtResource("6_o6xl0")
 
 [node name="SpawnTimer" type="Timer" parent="." unique_id=297078554]
 autostart = true
@@ -91,96 +98,6 @@ offset_bottom = 586.0
 theme_override_font_sizes/font_size = 32
 text = "Upgrades"
 
-[node name="LivesPanel" type="VBoxContainer" parent="UI" unique_id=1504790462]
-visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -20.0
-offset_right = 20.0
-offset_bottom = 20.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="LivesTitle" type="Label" parent="UI/LivesPanel" unique_id=1575006705]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Lives"
-
-[node name="LivesGrid" type="GridContainer" parent="UI/LivesPanel" unique_id=2140542664]
-layout_mode = 2
-columns = 3
-
-[node name="Life0Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=261010200]
-layout_mode = 2
-
-[node name="Life1Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=1899925677]
-layout_mode = 2
-
-[node name="Life2Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=493055603]
-layout_mode = 2
-
-[node name="Life3Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=1933745441]
-layout_mode = 2
-
-[node name="Life4Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=894007381]
-layout_mode = 2
-
-[node name="Life5Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=776675152]
-layout_mode = 2
-
-[node name="Life6Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=3209618]
-layout_mode = 2
-
-[node name="Life7Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=1188438892]
-layout_mode = 2
-
-[node name="Life8Button" type="Button" parent="UI/LivesPanel/LivesGrid" unique_id=19270770]
-layout_mode = 2
-
-[node name="EquippedOrderLabel" type="Label" parent="UI/LivesPanel" unique_id=1582370940]
-layout_mode = 2
-
-[node name="LivesBackButton" type="Button" parent="UI/LivesPanel" unique_id=1172184625]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Back"
-
-[node name="UpgradesPanel" type="VBoxContainer" parent="UI" unique_id=1762447236]
-offset_right = 40.0
-offset_bottom = 40.0
-theme_override_constants/separation = 15
-
-[node name="UpgradesTitle" type="Label" parent="UI/UpgradesPanel" unique_id=1919790060]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Upgrades"
-
-[node name="SpeedLabel" type="Label" parent="UI/UpgradesPanel" unique_id=1335777144]
-layout_mode = 2
-
-[node name="SpeedBuyButton" type="Button" parent="UI/UpgradesPanel" unique_id=370361336]
-layout_mode = 2
-
-[node name="DodgeLabel" type="Label" parent="UI/UpgradesPanel" unique_id=1128056018]
-layout_mode = 2
-
-[node name="DodgeBuyButton" type="Button" parent="UI/UpgradesPanel" unique_id=59932871]
-layout_mode = 2
-
-[node name="DashUpgradeLabel" type="Label" parent="UI/UpgradesPanel" unique_id=472948985]
-layout_mode = 2
-
-[node name="DashBuyButton" type="Button" parent="UI/UpgradesPanel" unique_id=906418347]
-layout_mode = 2
-
-[node name="BackButton" type="Button" parent="UI/UpgradesPanel" unique_id=351567414]
-layout_mode = 2
-text = "Back"
-
 [node name="LivesButton" type="Button" parent="UI" unique_id=1993896152]
 offset_left = 17.0
 offset_top = 467.0
@@ -197,5 +114,109 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 0, 0, 0)
+
+[node name="LivesCenterContainer" type="CenterContainer" parent="UI" unique_id=1627494353]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LivesPanel" type="VBoxContainer" parent="UI/LivesCenterContainer" unique_id=1504790462]
+custom_minimum_size = Vector2(900, 600)
+layout_mode = 2
+
+[node name="LivesTitle" type="Label" parent="UI/LivesCenterContainer/LivesPanel" unique_id=1575006705]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Lives"
+
+[node name="LivesGrid" type="GridContainer" parent="UI/LivesCenterContainer/LivesPanel" unique_id=2140542664]
+layout_mode = 2
+theme_override_constants/v_separation = 10
+columns = 3
+
+[node name="Life0Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=261010200]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="Life1Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=1899925677]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="Life2Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=493055603]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="Life3Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=1933745441]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="Life4Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=894007381]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="Life5Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=776675152]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="Life6Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=3209618]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="Life7Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=1188438892]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="Life8Button" type="Button" parent="UI/LivesCenterContainer/LivesPanel/LivesGrid" unique_id=19270770]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+
+[node name="EquippedOrderLabel" type="Label" parent="UI/LivesCenterContainer/LivesPanel" unique_id=1582370940]
+layout_mode = 2
+
+[node name="LivesBackButton" type="Button" parent="UI/LivesCenterContainer/LivesPanel" unique_id=1172184625]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Back"
+
+[node name="UpgradesCenterContainer" type="CenterContainer" parent="UI" unique_id=931715012]
+custom_minimum_size = Vector2(500, 400)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="UpgradesPanel" type="VBoxContainer" parent="UI/UpgradesCenterContainer" unique_id=1762447236]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="UpgradesTitle" type="Label" parent="UI/UpgradesCenterContainer/UpgradesPanel" unique_id=1919790060]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Upgrades"
+
+[node name="SpeedLabel" type="Label" parent="UI/UpgradesCenterContainer/UpgradesPanel" unique_id=1335777144]
+layout_mode = 2
+
+[node name="SpeedBuyButton" type="Button" parent="UI/UpgradesCenterContainer/UpgradesPanel" unique_id=370361336]
+layout_mode = 2
+
+[node name="DodgeLabel" type="Label" parent="UI/UpgradesCenterContainer/UpgradesPanel" unique_id=1128056018]
+layout_mode = 2
+
+[node name="DodgeBuyButton" type="Button" parent="UI/UpgradesCenterContainer/UpgradesPanel" unique_id=59932871]
+layout_mode = 2
+
+[node name="DashUpgradeLabel" type="Label" parent="UI/UpgradesCenterContainer/UpgradesPanel" unique_id=472948985]
+layout_mode = 2
+
+[node name="DashBuyButton" type="Button" parent="UI/UpgradesCenterContainer/UpgradesPanel" unique_id=906418347]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="UI/UpgradesCenterContainer/UpgradesPanel" unique_id=351567414]
+layout_mode = 2
+text = "Back"
 
 [node name="CoinSpawnTimer" type="Timer" parent="." unique_id=1675199668]

@@ -59,18 +59,18 @@ public partial class Main : Node2D
 		_player.Hit += OnPlayerHit;
 
 		GetNode<Button>("UI/UpgradesButton").Pressed += ShowUpgrades;
-		GetNode<Button>("UI/UpgradesPanel/BackButton").Pressed += ShowMenu;
-		GetNode<Button>("UI/UpgradesPanel/SpeedBuyButton").Pressed += BuySpeed;
-		GetNode<Button>("UI/UpgradesPanel/DodgeBuyButton").Pressed += BuyDodge;
-		GetNode<Button>("UI/UpgradesPanel/DashBuyButton").Pressed += BuyDash;
+		GetNode<Button>("UI/UpgradesCenterContainer/UpgradesPanel/BackButton").Pressed += ShowMenu;
+		GetNode<Button>("UI/UpgradesCenterContainer/UpgradesPanel/SpeedBuyButton").Pressed += BuySpeed;
+		GetNode<Button>("UI/UpgradesCenterContainer/UpgradesPanel/DodgeBuyButton").Pressed += BuyDodge;
+		GetNode<Button>("UI/UpgradesCenterContainer/UpgradesPanel/DashBuyButton").Pressed += BuyDash;
 
 		GetNode<Button>("UI/LivesButton").Pressed += ShowLives;
-		GetNode<Button>("UI/LivesPanel/LivesBackButton").Pressed += ShowMenu;
+		GetNode<Button>("UI/LivesCenterContainer/LivesPanel/LivesBackButton").Pressed += ShowMenu;
 
 		for (int i = 0; i < 9; i++)
 		{
 			int capturedId = i;
-			GetNode<Button>($"UI/LivesPanel/LivesGrid/Life{i}Button").Pressed += () => OnLifeButtonPressed(capturedId);
+			GetNode<Button>($"UI/LivesCenterContainer/LivesPanel/LivesGrid/Life{i}Button").Pressed += () => OnLifeButtonPressed(capturedId);
 		}
 
 		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
@@ -198,8 +198,8 @@ public partial class Main : Node2D
 		GetNode<ProgressBar>("UI/DashBar").Visible = false;
 		GetNode<Label>("UI/DashLabel").Visible = false;
 		GetNode<Label>("UI/LivesIndicatorLabel").Visible = false;
-		GetNode<Control>("UI/UpgradesPanel").Visible = false;
-		GetNode<Control>("UI/LivesPanel").Visible = false;
+		GetNode<Control>("UI/UpgradesCenterContainer").Visible = false;
+		GetNode<Control>("UI/LivesCenterContainer").Visible = false;
 		GetNode<Button>("UI/UpgradesButton").Visible = false;
 		GetNode<Button>("UI/LivesButton").Visible = false;
 		GetNode<Label>("UI/GameOverLabel").Visible = false;
@@ -269,7 +269,7 @@ public partial class Main : Node2D
 	{
 		_state = GameState.Upgrades;
 		HideAllPanels();
-		GetNode<Control>("UI/UpgradesPanel").Visible = true;
+		GetNode<Control>("UI/UpgradesCenterContainer").Visible = true;
 		RefreshUpgradesUI();
 	}
 
@@ -277,7 +277,7 @@ public partial class Main : Node2D
 	{
 		_state = GameState.Lives;
 		HideAllPanels();
-		GetNode<Control>("UI/LivesPanel").Visible = true;
+		GetNode<Control>("UI/LivesCenterContainer").Visible = true;
 		RefreshLivesUI();
 	}
 
@@ -302,7 +302,7 @@ public partial class Main : Node2D
 	{
 		for (int i = 0; i < 9; i++)
 		{
-			var button = GetNode<Button>($"UI/LivesPanel/LivesGrid/Life{i}Button");
+			var button = GetNode<Button>($"UI/LivesCenterContainer/LivesPanel/LivesGrid/Life{i}Button");
 			bool unlocked = GameData.IsLifeUnlocked(i);
 			bool equipped = GameData.EquippedLives.Contains(i);
 
@@ -319,7 +319,7 @@ public partial class Main : Node2D
 			}
 		}
 
-		var orderLabel = GetNode<Label>("UI/LivesPanel/EquippedOrderLabel");
+		var orderLabel = GetNode<Label>("UI/LivesCenterContainer/LivesPanel/EquippedOrderLabel");
 		if (GameData.EquippedLives.Count == 0)
 		{
 			orderLabel.Text = "No lives equipped!";
@@ -339,8 +339,8 @@ public partial class Main : Node2D
 	{
 		GetNode<Label>("UI/CoinLabel").Text = $"Coins: {GameData.Coins}";
 
-		var speedLabel = GetNode<Label>("UI/UpgradesPanel/SpeedLabel");
-		var speedButton = GetNode<Button>("UI/UpgradesPanel/SpeedBuyButton");
+		var speedLabel = GetNode<Label>("UI/UpgradesCenterContainer/UpgradesPanel/SpeedLabel");
+		var speedButton = GetNode<Button>("UI/UpgradesCenterContainer/UpgradesPanel/SpeedBuyButton");
 		if (GameData.SpeedLevel >= 5)
 		{
 			speedLabel.Text = $"Speed: +{GameData.SpeedLevel * 4}% (MAX)";
@@ -355,8 +355,8 @@ public partial class Main : Node2D
 			speedButton.Disabled = GameData.Coins < cost;
 		}
 
-		var dodgeLabel = GetNode<Label>("UI/UpgradesPanel/DodgeLabel");
-		var dodgeButton = GetNode<Button>("UI/UpgradesPanel/DodgeBuyButton");
+		var dodgeLabel = GetNode<Label>("UI/UpgradesCenterContainer/UpgradesPanel/DodgeLabel");
+		var dodgeButton = GetNode<Button>("UI/UpgradesCenterContainer/UpgradesPanel/DodgeBuyButton");
 		if (GameData.DodgeLevel >= 5)
 		{
 			dodgeLabel.Text = $"Dodge Chance: +{GameData.DodgeLevel * 2}% (MAX)";
@@ -371,8 +371,8 @@ public partial class Main : Node2D
 			dodgeButton.Disabled = GameData.Coins < cost;
 		}
 
-		var dashLabel = GetNode<Label>("UI/UpgradesPanel/DashUpgradeLabel");
-		var dashButton = GetNode<Button>("UI/UpgradesPanel/DashBuyButton");
+		var dashLabel = GetNode<Label>("UI/UpgradesCenterContainer/UpgradesPanel/DashUpgradeLabel");
+		var dashButton = GetNode<Button>("UI/UpgradesCenterContainer/UpgradesPanel/DashBuyButton");
 		if (GameData.DashLevel >= 5)
 		{
 			dashLabel.Text = $"Dash Charge Speed: {15 - GameData.DashLevel}s (MAX)";
@@ -461,12 +461,12 @@ public partial class Main : Node2D
 			GameData.HighScore = _score;
 		}
 
-		if (_score >= 35 && !_player.DashedThisRun)
+		if (GameData.HighScore >= 50 && _score >= 45 && !_player.DashedThisRun)
 		{
 			GameData.MonkUnlocked = true;
 		}
 
-		if (_score >= 30 && _player.TotalLivesThisRun == 1)
+		if (GameData.HighScore >= 50 && _score >= 45 && _player.TotalLivesThisRun == 1)
 		{
 			GameData.MonarchUnlocked = true;
 		}
@@ -537,13 +537,13 @@ public partial class Main : Node2D
 			speedMultiplier = 0.15f;
 		}
 
-	projectile.Type = type;
-	projectile.Position = spawnPos;
-	projectile.Direction = direction;
-	projectile.Speed = baseSpeed * speedMultiplier;
-	projectile.ProjectileScene = ProjectileScene;
+		projectile.Type = type;
+		projectile.Position = spawnPos;
+		projectile.Direction = direction;
+		projectile.Speed = baseSpeed * speedMultiplier;
+		projectile.ProjectileScene = ProjectileScene;
 
-	AddChild(projectile);
+		AddChild(projectile);
 	}
 
 	private void SpawnShadow(float delay)
@@ -553,7 +553,6 @@ public partial class Main : Node2D
 		var shadow = ProjectileScene.Instantiate<Projectile>();
 		shadow.Type = ProjectileType.Shadow;
 		shadow.ShadowDelay = delay;
-		shadow.Modulate = new Color(0.05f, 0.05f, 0.05f, 0.9f);
 		shadow.Position = _player.GetPositionAtDelay(delay);
 
 		AddChild(shadow);
