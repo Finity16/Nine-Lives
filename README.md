@@ -10,9 +10,9 @@ A fast paced dodge'em up built in Godot with C#. Survive as long as you can agai
 
 
 
-- \*\*Move:\*\* Arrow keys / WASD
+- Move: Arrow keys / WASD
 
-- \*\*Dash:\*\* Space (grants brief invulnerability, charges over time)
+- Dash: Space (grants brief invulnerability, charges over time)
 
 - Survive as long as possible. Getting hit costs you a life, when all equipped lives are gone, the run ends.
 
