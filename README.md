@@ -1,4 +1,4 @@
-\# Nine Lives
+# Nine Lives
 
 
 
@@ -6,43 +6,43 @@ A fast paced dodge'em up built in Godot with C#. Survive as long as you can agai
 
 
 
-\## How to Play
+## How to Play
 
 
 
-\- \*\*Move:\*\* Arrow keys / WASD
+- \*\*Move:\*\* Arrow keys / WASD
 
-\- \*\*Dash:\*\* Space (grants brief invulnerability, charges over time)
+- \*\*Dash:\*\* Space (grants brief invulnerability, charges over time)
 
-\- Survive as long as possible. Getting hit costs you a life, when all equipped lives are gone, the run ends.
-
-
-
-\## Features
+- Survive as long as possible. Getting hit costs you a life, when all equipped lives are gone, the run ends.
 
 
 
-\- Escalating difficulty: five distinct projectile types with special behaviors introduced as you survive longer
-
-\- A dash system with cooldown, invulnerability frames, and upgradeable charge speed
-
-\- An upgrade system, get coins during runs and buy permanent upgrades with them
-
-\- Meet special criteria to unlock new lives, and built the perfect three-life loadout with them
-
-\- Difficulty scales as you survive longer but with a hard cap, so runs stay challenging but fair
+## Features
 
 
 
-\## Built With
+- Escalating difficulty: five distinct projectile types with special behaviors introduced as you survive longer
+
+- A dash system with cooldown, invulnerability frames, and upgradeable charge speed
+
+- An upgrade system, get coins during runs and buy permanent upgrades with them
+
+- Meet special criteria to unlock new lives, and built the perfect three-life loadout with them
+
+- Difficulty scales as you survive longer but with a hard cap, so runs stay challenging but fair
 
 
 
-\- \[Godot Engine](https://godotengine.org/) 4.7 (Mono/C#)
+## Built With
 
 
 
-\## Credits
+- [Godot Engine](https://godotengine.org/) 4.7 (Mono/C#)
+
+
+
+## Credits
 
 
 
