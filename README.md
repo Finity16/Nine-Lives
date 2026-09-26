@@ -2,7 +2,7 @@
 
 
 
-A fast paced dodge'em up built in Godot with C#. Survive as long as you can against escalating waves of projectiles, and unlock powerful and unique lives that grant passive abilities- as long as you don't lose them.
+A fast paced dodge'em up built in Godot with C#. Survive as long as you can against escalating waves of projectiles, and unlock powerful and unique lives that grant passive abilities, as long as you don't lose them!
 
 
 
@@ -22,15 +22,15 @@ A fast paced dodge'em up built in Godot with C#. Survive as long as you can agai
 
 
 
-- Escalating difficulty: five distinct projectile types with special behaviors introduced as you survive longer
+- Game gets harder as you go, five distinct projectile types with special behaviors introduced as you survive longer
 
 - A dash system with cooldown, invulnerability frames, and upgradeable charge speed
 
-- An upgrade system, get coins during runs and buy permanent upgrades with them
+- An upgrade system, get coins during runs and buy permanent upgrades with them to get farther
 
 - Meet special criteria to unlock new lives, and built the perfect three-life loadout with them
 
-- Difficulty scales as you survive longer but with a hard cap, so runs stay challenging but fair
+- Difficulty scales as you survive longer but with a hard cap, so runs stay challenging but still fair
 
 
 
