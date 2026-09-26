@@ -48,3 +48,4 @@ A fast paced dodge'em up built in Godot with C#. Survive as long as you can agai
 
 Built for the "Out to C" Hack Club event.
 
+Because I'm new to coding, AI was used for research and help with structure of the code.
